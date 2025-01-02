@@ -1,0 +1,183 @@
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Maps Event App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    #map {
+      height: 80vh;
+      width: 100%;
+    }
+
+    .button-container {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    #add-event {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 5px;
+      width: 300px;
+    }
+
+    .modal-content h2 {
+      margin-top: 0;
+    }
+
+    .modal-content label {
+      display: block;
+      margin-top: 10px;
+    }
+
+    .modal-content input, .modal-content textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .modal-content button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+  </style>
+  <script src="https://maps.googleapis.com/maps/api/js?key=Your_Google_Maps_API_Key&libraries=places"></script>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="button-container">
+    <button id="add-event">Hinzufügen</button>
+  </div>
+
+  <div id="event-modal" class="modal">
+    <div class="modal-content">
+      <h2>Event hinzufügen</h2>
+      <label for="title">Titel</label>
+      <input type="text" id="title">
+
+      <label for="description">Beschreibung</label>
+      <textarea id="description"></textarea>
+
+      <label for="address">Adresse</label>
+      <input type="text" id="address">
+
+      <label for="time">Uhrzeit</label>
+      <input type="time" id="time">
+
+      <button id="submit-event">Hinzufügen</button>
+      <button id="close-modal">Abbrechen</button>
+    </div>
+  </div>
+
+  <script>
+    let map;
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 52.52, lng: 13.4050 },
+        zoom: 10
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initMap();
+    });
+
+    const modal = document.getElementById('event-modal');
+    const addEventButton = document.getElementById('add-event');
+    const submitEventButton = document.getElementById('submit-event');
+    const closeModalButton = document.getElementById('close-modal');
+
+    addEventButton.addEventListener('click', () => {
+      modal.style.display = 'flex';
+    });
+
+    closeModalButton.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    async function geocode(address) {
+      const geocoder = new google.maps.Geocoder();
+      return new Promise((resolve, reject) => {
+        geocoder.geocode({ address }, (results, status) => {
+          if (status === 'OK' && results[0]) {
+            resolve(results[0].geometry.location);
+          } else {
+            reject('Geocoding failed');
+          }
+        });
+      });
+    }
+
+    submitEventButton.addEventListener('click', async () => {
+      const title = document.getElementById('title').value;
+      const description = document.getElementById('description').value;
+      const address = document.getElementById('address').value;
+      const time = document.getElementById('time').value;
+
+      if (!title || !description || !address || !time) {
+        alert('Bitte füllen Sie alle Felder aus.');
+        return;
+      }
+
+      try {
+        const coordinates = await geocode(address);
+        if (coordinates) {
+          const marker = new google.maps.Marker({
+            position: coordinates,
+            map: map,
+            title: title
+          });
+
+          const infoWindow = new google.maps.InfoWindow({
+            content: `<h3>${title}</h3><p>${description}</p><p><strong>Adresse:</strong> ${address}</p><p><strong>Uhrzeit:</strong> ${time}</p>`
+          });
+
+          marker.addListener('click', () => {
+            infoWindow.open(map, marker);
+          });
+
+          modal.style.display = 'none';
+          document.getElementById('title').value = '';
+          document.getElementById('description').value = '';
+          document.getElementById('address').value = '';
+          document.getElementById('time').value = '';
+        } else {
+          alert('Adresse nicht gefunden.');
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Es gab einen Fehler beim Hinzufügen des Events.');
+      }
+    });
+  </script>
+</body>
+</html>
